@@ -121,7 +121,6 @@ public:
         return loader_->createUniqueInstance(lookup_name);
     }
 };
-
 template<typename T> class ClassAllocator : public GuardedClassLoader<typename T::Allocator> {
 public:
     typedef std::shared_ptr<T> ClassSharedPtr;
@@ -136,18 +135,21 @@ public:
         return this->createInstance(lookup_name)->allocate(t1, t2, t3);
     }
 };
+
 class RosChain : GuardedClassLoaderList, public canopen::LayerStack {
-    GuardedClassLoader<can::DriverInterface> driver_loader_;
+    
+    GuardedClassLoader<can::DriverInterface> driver_loader_;    
     ClassAllocator<canopen::Master> master_allocator_;
+
 protected:
     can::DriverInterfaceSharedPtr interface_;
     MasterSharedPtr master_;
     std::shared_ptr<canopen::LayerGroupNoDiag<canopen::Node> > nodes_;
     std::shared_ptr<canopen::LayerGroupNoDiag<canopen::EMCYHandler> > emcy_handlers_;
-    std::map<std::string, canopen::NodeSharedPtr > nodes_lookup_;
-    canopen::SyncLayerSharedPtr sync_;
-    std::vector<LoggerSharedPtr > loggers_;
-    std::vector<PublishFuncType> publishers_;
+    std::map<std::string, canopen::NodeSharedPtr>   nodes_lookup_;
+    canopen::SyncLayerSharedPtr     sync_;
+    std::vector<LoggerSharedPtr>    loggers_;
+    std::vector<PublishFuncType>    publishers_;
 
     can::StateListenerConstSharedPtr state_listener_;
 

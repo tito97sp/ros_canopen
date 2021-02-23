@@ -7,23 +7,24 @@
 #include <ros/node_handle.h>
 #include <canopen_chain_node/ros_chain.h>
 
-#include <canopen_motor_node/robot_layer.h>
-#include <canopen_motor_node/controller_manager_layer.h>
+#include <canopen_401/base.h>
+
+//#include <canopen_chain_node/robot_layer.h>
+//#include <canopen_chain_node/controller_manager_layer.h>
 
 
 namespace canopen {
 
-class MotorChain : public canopen::RosChain {
-    ClassAllocator<canopen::MotorBase> motor_allocator_;
-    std::shared_ptr< canopen::LayerGroupNoDiag<canopen::MotorBase>> motors_;
-    RobotLayerSharedPtr robot_layer_;
+class GenericDeviceChain : public canopen::RosChain {
 
-    std::shared_ptr<ControllerManagerLayer> cm_;
+    ClassAllocator<canopen::GenericDeviceBase> generic_devices_allocator_;
 
+    std::shared_ptr< canopen::LayerGroupNoDiag<canopen::GenericDeviceBase>> generic_devices_;
+    
     virtual bool nodeAdded(XmlRpc::XmlRpcValue &params, const canopen::NodeSharedPtr &node, const LoggerSharedPtr &logger);
 
 public:
-    MotorChain(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv);
+    GenericDeviceChain(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv);
 
     virtual bool setup_chain();
 };

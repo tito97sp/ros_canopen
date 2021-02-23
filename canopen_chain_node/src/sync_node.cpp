@@ -44,7 +44,7 @@ int main(int argc, char** argv){
     ros::NodeHandle sync_nh(nh_priv, "sync");
     int sync_ms;
     if(!sync_nh.getParam("interval_ms", sync_ms) || sync_ms <=0){
-        ROS_ERROR_STREAM("Sync interval  "<< sync_ms << " is invalid");
+        ROS_ERROR_STREAM("Sync interval was not found in inclinometer node");
         return 1;
     }
 

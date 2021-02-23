@@ -181,7 +181,9 @@ public:
 };
 
 template<uint16_t ID, typename TYPE, uint16_t OBJ, uint8_t SUB, uint16_t CW_MASK> class ModeForwardHelper : public ModeTargetHelper<TYPE> {
+    
     canopen::ObjectStorage::Entry<TYPE> target_entry_;
+
 public:
     ModeForwardHelper(ObjectStorageSharedPtr storage) : ModeTargetHelper<TYPE>(ID) {
         if(SUB) storage->entry(target_entry_, OBJ, SUB);
