@@ -398,9 +398,9 @@ bool Motor402::readState(LayerStatus &status, const LayerState &current_state){
     }
     if(sw & (1<<State402::SW_Internal_limit)){
         if(old_sw & (1<<State402::SW_Internal_limit) || current_state != Ready){
-            status.warn("Internal limit active");
+            //status.warn("Internal limit active");
         }else{
-            status.error("Internal limit active");
+            //status.error("Internal limit active");
         }
     }
 
@@ -465,7 +465,7 @@ void Motor402::handleDiag(LayerReport &report){
         report.warn("Warning bit is set");
     }
     if(sw & (1<<State402::SW_Internal_limit)){
-        report.error("Internal limit active");
+        //report.error("Internal limit active");
     }
 }
 void Motor402::handleInit(LayerStatus &status){

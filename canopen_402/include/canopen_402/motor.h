@@ -181,9 +181,7 @@ public:
 };
 
 template<uint16_t ID, typename TYPE, uint16_t OBJ, uint8_t SUB, uint16_t CW_MASK> class ModeForwardHelper : public ModeTargetHelper<TYPE> {
-    
     canopen::ObjectStorage::Entry<TYPE> target_entry_;
-
 public:
     ModeForwardHelper(ObjectStorageSharedPtr storage) : ModeTargetHelper<TYPE>(ID) {
         if(SUB) storage->entry(target_entry_, OBJ, SUB);
@@ -228,13 +226,27 @@ public:
     ProfiledPositionMode(ObjectStorageSharedPtr storage) : ModeTargetHelper(MotorBase::Profiled_Position) {
         storage->entry(target_position_, 0x607A);
     }
-    virtual bool start() { sw_ = 0; last_target_= std::numeric_limits<double>::quiet_NaN(); return ModeTargetHelper::start(); }
-    virtual bool read(const uint16_t &sw) { sw_ = sw; return (sw & MASK_Error) == 0; }
-    virtual bool write(OpModeAccesser& cw) {
+    
+    virtual bool start() 
+    {
+        sw_ = 0;
+        last_target_= std::numeric_limits<double>::quiet_NaN();
+        return ModeTargetHelper::start(); 
+    }
+    
+    virtual bool read(const uint16_t &sw) 
+    { 
+        sw_ = sw;
+        return (sw & MASK_Error) == 0;
+    }
+    
+    virtual bool write(OpModeAccesser& cw) 
+    {
         cw.set(CW_Immediate);
         if(hasTarget()){
             int32_t target = getTarget();
-            if((sw_ & MASK_Acknowledged) == 0 && target != last_target_){
+            //if((sw_ & MASK_Acknowledged) == 0 && target != last_target_){
+            if(target != last_target_){
                 if(cw.get(CW_NewPoint)){
                     cw.reset(CW_NewPoint); // reset if needed
                 }else{
