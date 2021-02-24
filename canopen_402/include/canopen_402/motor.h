@@ -245,6 +245,7 @@ public:
         cw.set(CW_Immediate);
         if(hasTarget()){
             int32_t target = getTarget();
+            //TODO: Check for Acknowledge.
             //if((sw_ & MASK_Acknowledged) == 0 && target != last_target_){
             if(target != last_target_){
                 if(cw.get(CW_NewPoint)){
