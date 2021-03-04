@@ -267,11 +267,12 @@ public:
 class HomingMode: public Mode{
 protected:
     enum SW_bits {
-        SW_Attained =  State402::SW_Operation_mode_specific0,
+        SW_Attained =  State402::SW_Manufacturer_specific0,
         SW_Error =  State402::SW_Operation_mode_specific1,
     };
     enum CW_bits {
         CW_StartHoming =  Command402::CW_Operation_mode_specific0,
+        CW_Halt =  Command402::CW_Halt,
     };
 public:
     HomingMode() : Mode(MotorBase::Homing) {}
@@ -279,7 +280,7 @@ public:
 };
 
 class DefaultHomingMode: public HomingMode{
-    canopen::ObjectStorage::Entry<int8_t> homing_method_;
+    canopen::ObjectStorage::Entry<uint8_t> homing_method_;
     std::atomic<bool> execute_;
 
     boost::mutex mutex_;
@@ -296,6 +297,7 @@ public:
     DefaultHomingMode(ObjectStorageSharedPtr storage) {
         storage->entry(homing_method_, 0x6098);
     }
+
     virtual bool start();
     virtual bool read(const uint16_t &sw);
     virtual bool write(OpModeAccesser& cw);
@@ -332,11 +334,15 @@ public:
     template<typename T, typename ...Args>
     bool registerMode(uint16_t mode, Args&&... args) {
         return mode_allocators_.insert(std::make_pair(mode,  [args..., mode, this](){
-            if(isModeSupportedByDevice(mode)) registerMode(mode, ModeSharedPtr(new T(args...)));
+            if(isModeSupportedByDevice(mode))
+            {
+                registerMode(mode, ModeSharedPtr(new T(args...)));
+            }
         })).second;
-    }
+    }  
 
     virtual void registerDefaultModes(ObjectStorageSharedPtr storage){
+        // printf("registerDefaultModes\n");
         registerMode<ProfiledPositionMode> (MotorBase::Profiled_Position, storage);
         registerMode<VelocityMode> (MotorBase::Velocity, storage);
         registerMode<ProfiledVelocityMode> (MotorBase::Profiled_Velocity, storage);
@@ -393,11 +399,11 @@ private:
     const bool monitor_mode_;
     const boost::chrono::seconds state_switch_timeout_;
 
-    canopen::ObjectStorage::Entry<uint16_t>  status_word_entry_;
-    canopen::ObjectStorage::Entry<uint16_t >  control_word_entry_;
-    canopen::ObjectStorage::Entry<int8_t>  op_mode_display_;
-    canopen::ObjectStorage::Entry<int8_t>  op_mode_;
-    canopen::ObjectStorage::Entry<uint32_t>  supported_drive_modes_;
+    canopen::ObjectStorage::Entry<uint16_t>     status_word_entry_;
+    canopen::ObjectStorage::Entry<uint16_t >    control_word_entry_;
+    canopen::ObjectStorage::Entry<int8_t>       op_mode_display_;
+    canopen::ObjectStorage::Entry<int8_t>       op_mode_;
+    canopen::ObjectStorage::Entry<uint32_t>     supported_drive_modes_;
 };
 
 }

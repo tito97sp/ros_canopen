@@ -117,6 +117,7 @@ Command402::TransitionTable::TransitionTable(){
     /*15*/ add(s::Fault, s::Switch_On_Disabled, Op((1<<CW_Fault_Reset), 0));
 }
 State402::InternalState Command402::nextStateForEnabling(State402::InternalState state){
+    printf("nextStateForEnabling\n");
     switch(state){
     case State402::Start:
         return State402::Not_Ready_To_Switch_On;
@@ -147,7 +148,10 @@ bool Command402::setTransition(uint16_t &cw, const State402::InternalState &from
         if(from != to){
             State402::InternalState hop = to;
             if(next){
-                if(to == State402::Operation_Enable) hop = nextStateForEnabling(from);
+                if(to == State402::Operation_Enable){
+
+                    hop = nextStateForEnabling(from);
+                }
                 *next = hop;
             }
             transitions_.get(from, hop)(cw);
@@ -165,11 +169,15 @@ template<uint16_t mask, uint16_t not_equal> struct masked_status_not_equal {
     masked_status_not_equal(uint16_t &status) : status_(status) {}
     bool operator()() const { return (status_ & mask) != not_equal; }
 };
+
 bool DefaultHomingMode::start() {
+    printf("homing mode -> start\n");
     execute_ = false;
     return read(0);
 }
+
 bool DefaultHomingMode::read(const uint16_t &sw) {
+    printf("homing mode -> read\n");
     boost::mutex::scoped_lock lock(mutex_);
     uint16_t old = status_;
     status_ = sw & (MASK_Reached | MASK_Attained | MASK_Error);
@@ -178,16 +186,30 @@ bool DefaultHomingMode::read(const uint16_t &sw) {
     }
     return true;
 }
+
 bool DefaultHomingMode::write(Mode::OpModeAccesser& cw) {
-    cw = 0;
+    
+    printf("homing mode -> write\n");
+    // cw = 0;
     if(execute_){
-        cw.set(CW_StartHoming);
+        printf("    execute = true\n");
+        if(!cw.get(CW_StartHoming))
+        {
+            printf("        CW_StartHoming = 0\n");
+        }
+        if(cw.get(CW_StartHoming))
+        {
+            printf("        CW_StartHoming = 1\n");
+        }
         return true;
     }
+    printf("    execute = false\n");
     return false;
 }
 
 bool DefaultHomingMode::executeHoming(canopen::LayerStatus &status) {
+    printf("homing mode -> execute homing\n");
+    
     if(!homing_method_.valid()){
         return error(status, "homing method entry is not valid");
     }
@@ -197,16 +219,18 @@ bool DefaultHomingMode::executeHoming(canopen::LayerStatus &status) {
     }
 
     time_point prepare_time = get_abs_time(boost::chrono::seconds(1));
+    
     // ensure homing is not running
     boost::mutex::scoped_lock lock(mutex_);
-    if(!cond_.wait_until(lock, prepare_time, masked_status_not_equal<MASK_Error | MASK_Reached, 0> (status_))){
-        return error(status, "could not prepare homing");
-    }
+    //if(!cond_.wait_until(lock, prepare_time, masked_status_not_equal<MASK_Error | MASK_Reached, 0> (status_))){
+    //    return error(status, "could not prepare homing");
+    //}
     if(status_ & MASK_Error){
         return error(status, "homing error before start");
     }
 
     execute_ = true;
+
 
     // ensure start
     if(!cond_.wait_until(lock, prepare_time, masked_status_not_equal<MASK_Error | MASK_Attained | MASK_Reached, MASK_Reached> (status_))){
@@ -219,9 +243,9 @@ bool DefaultHomingMode::executeHoming(canopen::LayerStatus &status) {
     time_point finish_time = get_abs_time(boost::chrono::seconds(10)); //
 
     // wait for attained
-    if(!cond_.wait_until(lock, finish_time, masked_status_not_equal<MASK_Error | MASK_Attained, 0> (status_))){
-        return error(status, "homing not attained");
-    }
+    //if(!cond_.wait_until(lock, finish_time, masked_status_not_equal<MASK_Error | MASK_Attained, 0> (status_))){
+    //    return error(status, "homing not attained");
+    //}
     if(status_ & MASK_Error){
         return error(status, "homing error during process");
     }
@@ -249,10 +273,11 @@ bool Motor402::setTarget(double val){
     }
     return false;
 }
-bool Motor402::isModeSupported(uint16_t mode) { return mode != MotorBase::Homing && allocMode(mode); }
+bool Motor402::isModeSupported(uint16_t mode) {return mode != MotorBase::Homing && allocMode(mode); }
 
 bool Motor402::enterModeAndWait(uint16_t mode) {
     LayerStatus s;
+    printf("enterModeAndWait %l\n", mode);
     bool okay = mode != MotorBase::Homing && switchMode(s, mode);
     if(!s.bounded<LayerStatus::Ok>()){
         ROSCANOPEN_ERROR("canopen_402", "Could not switch to mode " << mode << ", reason: " << s.reason());
@@ -266,14 +291,18 @@ uint16_t Motor402::getMode() {
 }
 
 bool Motor402::isModeSupportedByDevice(uint16_t mode){
+    
     if(!supported_drive_modes_.valid()) {
         BOOST_THROW_EXCEPTION( std::runtime_error("Supported drive modes (object 6502) is not valid"));
     }
     return mode > 0 && mode <= 32 && (supported_drive_modes_.get_cached() & (1<<(mode-1)));
 }
+
 void Motor402::registerMode(uint16_t id, const ModeSharedPtr &m){
     boost::mutex::scoped_lock map_lock(map_mutex_);
-    if(m && m->mode_id_ == id) modes_.insert(std::make_pair(id, m));
+    if(m && m->mode_id_ == id && m->mode_id_){
+        modes_.insert(std::make_pair(id, m));
+    }
 }
 
 ModeSharedPtr Motor402::allocMode(uint16_t mode){
@@ -289,7 +318,6 @@ ModeSharedPtr Motor402::allocMode(uint16_t mode){
 }
 
 bool Motor402::switchMode(LayerStatus &status, uint16_t mode) {
-
     if(mode == MotorBase::No_Mode){
         boost::mutex::scoped_lock lock(mode_mutex_);
         selected_mode_.reset();
@@ -320,7 +348,7 @@ bool Motor402::switchMode(LayerStatus &status, uint16_t mode) {
 
         selected_mode_.reset();
     }
-
+     
     if(!switchState(status, switching_state_)) return false;
 
     op_mode_.set(mode);
@@ -356,7 +384,8 @@ bool Motor402::switchMode(LayerStatus &status, uint16_t mode) {
 
 }
 
-bool Motor402::switchState(LayerStatus &status, const State402::InternalState &target){
+bool Motor402::switchState(LayerStatus &status, const State402::InternalState &target){  
+    printf("switchState\n");
     time_point abstime = get_abs_time(state_switch_timeout_);
     State402::InternalState state = state_handler_.getState();
     target_state_ = target;
@@ -398,9 +427,9 @@ bool Motor402::readState(LayerStatus &status, const LayerState &current_state){
     }
     if(sw & (1<<State402::SW_Internal_limit)){
         if(old_sw & (1<<State402::SW_Internal_limit) || current_state != Ready){
-            //status.warn("Internal limit active");
+            status.warn("Internal limit active");
         }else{
-            //status.error("Internal limit active");
+            status.error("Internal limit active");
         }
     }
 
@@ -482,13 +511,15 @@ void Motor402::handleInit(LayerStatus &status){
         control_word_ = 0;
         start_fault_reset_ = true;
     }
+
     if(!switchState(status, State402::Operation_Enable)){
         status.error("Could not enable motor");
         return;
     }
-
+    
     ModeSharedPtr m = allocMode(MotorBase::Homing);
     if(!m){
+        printf("homing not supported\n");
         return; // homing not supported
     }
 
@@ -512,10 +543,12 @@ void Motor402::handleInit(LayerStatus &status){
     switchMode(status, No_Mode);
 }
 void Motor402::handleShutdown(LayerStatus &status){
+    printf("handleShutdown\n");
     switchMode(status, MotorBase::No_Mode);
     switchState(status, State402::Switch_On_Disabled);
 }
 void Motor402::handleHalt(LayerStatus &status){
+    printf("handleHalt\n");
     State402::InternalState state = state_handler_.getState();
     boost::mutex::scoped_lock lock(cw_mutex_);
 
@@ -532,6 +565,7 @@ void Motor402::handleHalt(LayerStatus &status){
     }
 }
 void Motor402::handleRecover(LayerStatus &status){
+    printf("handleRecover\n");
     start_fault_reset_ = true;
     {
         boost::mutex::scoped_lock lock(mode_mutex_);
