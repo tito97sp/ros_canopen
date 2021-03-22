@@ -27,6 +27,6 @@
   <exec_depend>socketcan_interface</exec_depend>
 
   <export>
-    <metapackage/>
+    
   </export>
 </package>
