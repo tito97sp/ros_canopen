@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(canopen_401)
+project(canopen_410)
 
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -32,7 +32,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-# canopen_401_inclinometer
+# canopen_410_inclinometer
 add_library(${PROJECT_NAME}
   src/inclinometer.cpp
 )
@@ -40,7 +40,7 @@ target_link_libraries(${PROJECT_NAME}
   ${catkin_LIBRARIES}
 )
 
-# canopen_401_plugin
+# canopen_410_plugin
 add_library(${PROJECT_NAME}_plugin
   src/plugin.cpp
 )

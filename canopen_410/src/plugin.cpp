@@ -1,5 +1,5 @@
 #include <class_loader/class_loader.hpp>
-#include <canopen_401/inclinometer.h>
+#include <canopen_410/inclinometer.h>
 
 canopen::GenericDeviceBaseSharedPtr canopen::Inclinometer::Allocator::allocate(const std::string &name, canopen::ObjectStorageSharedPtr storage, const canopen::Settings &settings) {
     return std::make_shared<canopen::Inclinometer>(name, storage, settings);

@@ -168,6 +168,7 @@ bool RosChain::handle_init(std_srvs::Trigger::Request  &req, std_srvs::Trigger::
     shutdown(status);
     return true;
 }
+
 bool RosChain::handle_recover(std_srvs::Trigger::Request  &req, std_srvs::Trigger::Response &res){
     TriggerResponseLogger rl(res, "Recovering");
     boost::mutex::scoped_lock lock(mutex_);
@@ -571,6 +572,7 @@ bool RosChain::setup_nodes(){
     }
     return true;
 }
+
 bool RosChain::nodeAdded(XmlRpc::XmlRpcValue &params, const canopen::NodeSharedPtr &node, const LoggerSharedPtr &logger){
     return true;
 }

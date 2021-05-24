@@ -1,7 +1,7 @@
 #ifndef CANOPEN_402_MOTOR_H
 #define CANOPEN_402_MOTOR_H
 
-#include <canopen_401/base.h>
+#include <canopen_410/base.h>
 #include <canopen_master/canopen.h>
 #include <functional>
 #include <boost/container/flat_map.hpp>
@@ -12,6 +12,8 @@
 
 #include <realtime_tools/realtime_publisher.h>
 #include <geometry_msgs/QuaternionStamped.h>
+#include <geometry_msgs/Vector3.h>
+
 
 namespace canopen
 {
@@ -33,6 +35,9 @@ public:
         storage->entry(slope_late_, 0x6020);
         storage->entry(slope_late_op_, 0x6021);
         storage->entry(slope_late_preset_, 0x6022);
+
+        quat_msg = std::shared_ptr<geometry_msgs::QuaternionStamped>( new geometry_msgs::QuaternionStamped );
+        deg_msg = std::shared_ptr<geometry_msgs::Vector3>( new geometry_msgs::Vector3 );
     }
 
     class Allocator : public GenericDeviceBase::Allocator{
@@ -42,7 +47,7 @@ public:
 
 protected:
     virtual void handleRead(LayerStatus &status, const LayerState &current_state);
-    virtual void handleWrite(LayerStatus &status, const LayerState &current_state);
+    virtual void handleWrite(LayerStatus &status, const LayerState &current_state){/* Unused */}
     virtual void handleDiag(LayerReport &report){/* Unused */}
     virtual void handleInit(LayerStatus &status);
     virtual void handleShutdown(LayerStatus &status){/* Unused */}
@@ -62,8 +67,10 @@ private:
 
     std::shared_ptr<ros::Publisher> inclinometer_pub_shptr;
     std::shared_ptr<geometry_msgs::QuaternionStamped> quat_msg;
+    std::shared_ptr<geometry_msgs::Vector3> deg_msg;
 
-    ros::Publisher inclinometer_pub_;
+    ros::Publisher inclinometer_quat_pub_;
+    ros::Publisher inclinometer_deg_pub_;
 
     ros::Time last_publish_time_;
     double publish_rate_;

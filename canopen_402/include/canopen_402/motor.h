@@ -10,6 +10,8 @@
 #include <limits>
 #include <algorithm>
 
+#include "iostream"
+
 namespace canopen
 {
 
@@ -68,6 +70,7 @@ class Command402 {
     };
     class TransitionTable {
         boost::container::flat_map< std::pair<State402::InternalState, State402::InternalState>, Op > transitions_;
+        
         void add(const State402::InternalState &from, const State402::InternalState &to, Op op){
             transitions_.insert(std::make_pair(std::make_pair(from, to), op));
         }
@@ -206,10 +209,11 @@ typedef ModeForwardHelper<MotorBase::Cyclic_Synchronous_Position, int32_t, 0x607
 typedef ModeForwardHelper<MotorBase::Cyclic_Synchronous_Velocity, int32_t, 0x60FF, 0, 0> CyclicSynchronousVelocityMode;
 typedef ModeForwardHelper<MotorBase::Cyclic_Synchronous_Torque, int16_t, 0x6071, 0, 0> CyclicSynchronousTorqueMode;
 typedef ModeForwardHelper<MotorBase::Velocity, int16_t, 0x6042, 0, (1<<Command402::CW_Operation_mode_specific0)|(1<<Command402::CW_Operation_mode_specific1)|(1<<Command402::CW_Operation_mode_specific2)> VelocityMode;
-typedef ModeForwardHelper<MotorBase::Interpolated_Position, int32_t, 0x60C1, 0x01, (1<<Command402::CW_Operation_mode_specific0)> InterpolatedPositionMode;
+typedef ModeForwardHelper<MotorBase::Interpolated_Position, int32_t, 0x60C1, 0, (1<<Command402::CW_Operation_mode_specific0)> InterpolatedPositionMode;
 
 class ProfiledPositionMode : public ModeTargetHelper<int32_t> {
     canopen::ObjectStorage::Entry<int32_t> target_position_;
+    bool first_time_;
     double last_target_;
     uint16_t sw_;
 public:
@@ -217,11 +221,13 @@ public:
         MASK_Reached = (1<<State402::SW_Target_reached),
         MASK_Acknowledged = (1<<State402::SW_Operation_mode_specific0),
         MASK_Error = (1<<State402::SW_Operation_mode_specific1),
+        MASK_Pend = (1<<State402::SW_Manufacturer_specific2)
     };
     enum CW_bits {
         CW_NewPoint =  Command402::CW_Operation_mode_specific0,
         CW_Immediate =  Command402::CW_Operation_mode_specific1,
-        CW_Blending =  Command402::CW_Operation_mode_specific3,
+        CW_Abs = Command402::CW_Operation_mode_specific2,
+        CW_Halt = Command402::CW_Halt,
     };
     ProfiledPositionMode(ObjectStorageSharedPtr storage) : ModeTargetHelper(MotorBase::Profiled_Position) {
         storage->entry(target_position_, 0x607A);
@@ -229,7 +235,8 @@ public:
     
     virtual bool start() 
     {
-        sw_ = 0;
+        //sw_ = 0;
+        first_time_ = true;
         last_target_= std::numeric_limits<double>::quiet_NaN();
         return ModeTargetHelper::start(); 
     }
@@ -242,21 +249,35 @@ public:
     
     virtual bool write(OpModeAccesser& cw) 
     {
-        cw.set(CW_Immediate);
+        cw.set(CW_Abs);         //relative
+        cw.reset(CW_Immediate);
+        
+        std::cout << "sw: " << sw_ << " ,  MASK_Pend " << ((sw_ & MASK_Pend) >> State402::SW_Manufacturer_specific2 )  << std::endl;
+        std::cout << "cw New_Point: " << cw.get(CW_NewPoint) << std::endl;
+
         if(hasTarget()){
             int32_t target = getTarget();
-            //TODO: Check for Acknowledge.
-            //if((sw_ & MASK_Acknowledged) == 0 && target != last_target_){
-            if(target != last_target_){
-                if(cw.get(CW_NewPoint)){
-                    cw.reset(CW_NewPoint); // reset if needed
-                }else{
-                    target_position_.set(target);
-                    cw.set(CW_NewPoint);
-                    last_target_ = target;
-                }
-            } else if (sw_ & MASK_Acknowledged){
-                cw.reset(CW_NewPoint);
+            if(target != last_target_){ 
+
+                std::cout << " ###@### target != last_target_" << std::endl;
+                
+                //if(((sw_ & MASK_Pend) >> State402::SW_Manufacturer_specific2 ) || first_time_)                // In place
+                //{
+                    std::cout << "Pending" << std::endl;
+                    if(!cw.get(CW_NewPoint))   // no assumed target position
+                    {  
+                        target_position_.set(target);
+                        cw.set(CW_NewPoint);
+                        std::cout << "Set CW_NewPoint" << std::endl;
+                        last_target_ = target;
+                        
+                    }
+                    else if(cw.get(CW_NewPoint))         // assumed target position
+                    {
+                        cw.reset(CW_NewPoint);first_time_ = false;
+                        std::cout << "Reset CW_NewPoint" << std::endl;
+                    }
+                //}
             }
             return true;
         }

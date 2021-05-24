@@ -6,7 +6,7 @@ using namespace canopen;
 
 GenericDeviceChain::GenericDeviceChain(const ros::NodeHandle &nh, const ros::NodeHandle &nh_priv) :
         RosChain(nh, nh_priv),
-        generic_devices_allocator_("canopen_401", "canopen::GenericDeviceBase::Allocator"){}
+        generic_devices_allocator_("canopen_410", "canopen::GenericDeviceBase::Allocator"){}
 
 bool GenericDeviceChain::nodeAdded(XmlRpc::XmlRpcValue &params, const canopen::NodeSharedPtr &node, const LoggerSharedPtr &logger)
 {
@@ -21,9 +21,9 @@ bool GenericDeviceChain::nodeAdded(XmlRpc::XmlRpcValue &params, const canopen::N
         return 1;
     }
 
-    if(device_type.compare("inclinometer")){
+    if(device_type.compare("inclinometer") == 0){
 
-        std::string alloc_name = "canopen::Inclinometer::allocator";
+        std::string alloc_name = "canopen::Inclinometer::Allocator";
 
         GenericDeviceBaseSharedPtr inclinometer;
 
@@ -52,7 +52,9 @@ bool GenericDeviceChain::nodeAdded(XmlRpc::XmlRpcValue &params, const canopen::N
 }
 
 bool GenericDeviceChain::setup_chain() {
-    generic_devices_.reset(new LayerGroupNoDiag<GenericDeviceBase>("401 Layer"));
+    printf("GenericDeviceChain setup_chain\n");
+
+    generic_devices_.reset(new LayerGroupNoDiag<GenericDeviceBase>("410 Layer"));
 
     ros::Duration dur(0.0) ;
 

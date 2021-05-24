@@ -8,7 +8,7 @@ endif()
 
 find_package(catkin REQUIRED
   COMPONENTS
-    canopen_401
+    canopen_410
     canopen_chain_node
     canopen_master
     roscpp
@@ -51,7 +51,7 @@ catkin_package(
   LIBRARIES
     canopen_generic
   CATKIN_DEPENDS
-    canopen_401
+    canopen_410
     canopen_chain_node
     canopen_master
     roscpp

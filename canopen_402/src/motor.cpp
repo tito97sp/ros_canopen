@@ -69,6 +69,7 @@ State402::InternalState State402::read(uint16_t sw) {
     }
     return state_;
 }
+
 bool State402::waitForNewState(const time_point &abstime, State402::InternalState &state){
     boost::mutex::scoped_lock lock(mutex_);
     while(state_ == state && cond_.wait_until(lock, abstime) == boost::cv_status::no_timeout) {}
@@ -117,7 +118,7 @@ Command402::TransitionTable::TransitionTable(){
     /*15*/ add(s::Fault, s::Switch_On_Disabled, Op((1<<CW_Fault_Reset), 0));
 }
 State402::InternalState Command402::nextStateForEnabling(State402::InternalState state){
-    printf("nextStateForEnabling\n");
+    printf("nextStateForEnabling %u \n", state);
     switch(state){
     case State402::Start:
         return State402::Not_Ready_To_Switch_On;
@@ -145,15 +146,22 @@ State402::InternalState Command402::nextStateForEnabling(State402::InternalState
 
 bool Command402::setTransition(uint16_t &cw, const State402::InternalState &from, const State402::InternalState &to, State402::InternalState *next){
     try{
+        printf("canopen_402 set_transition from %u, to %u \n", from, to);
         if(from != to){
             State402::InternalState hop = to;
             if(next){
-                if(to == State402::Operation_Enable){
+                // if(to == State402::Switch_On_Disabled)
+                // {
+                //     hop = nextStateForEnabling(from);
+                // }
+                //if(to == State402::Operation_Enable){
 
                     hop = nextStateForEnabling(from);
-                }
+                //}
                 *next = hop;
             }
+            printf("canopen_402 transition_.get() from %u, hop %u \n", from, hop);
+
             transitions_.get(from, hop)(cw);
         }
         return true;
@@ -385,7 +393,6 @@ bool Motor402::switchMode(LayerStatus &status, uint16_t mode) {
 }
 
 bool Motor402::switchState(LayerStatus &status, const State402::InternalState &target){  
-    printf("switchState\n");
     time_point abstime = get_abs_time(state_switch_timeout_);
     State402::InternalState state = state_handler_.getState();
     target_state_ = target;
@@ -427,14 +434,15 @@ bool Motor402::readState(LayerStatus &status, const LayerState &current_state){
     }
     if(sw & (1<<State402::SW_Internal_limit)){
         if(old_sw & (1<<State402::SW_Internal_limit) || current_state != Ready){
-            status.warn("Internal limit active");
+            //status.warn("Internal limit active");
         }else{
-            status.error("Internal limit active");
+            //status.error("Internal limit active");
         }
     }
 
     return true;
 }
+
 void Motor402::handleRead(LayerStatus &status, const LayerState &current_state){
     if(current_state > Off){
         readState(status, current_state);

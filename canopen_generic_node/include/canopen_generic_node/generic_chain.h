@@ -7,7 +7,7 @@
 #include <ros/node_handle.h>
 #include <canopen_chain_node/ros_chain.h>
 
-#include <canopen_401/base.h>
+#include <canopen_410/base.h>
 
 //#include <canopen_chain_node/robot_layer.h>
 //#include <canopen_chain_node/controller_manager_layer.h>

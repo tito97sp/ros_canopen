@@ -1,5 +1,5 @@
-<library path="lib/libcanopen_401_plugin">
+<library path="lib/libcanopen_410_plugin">
   <class type="canopen::Inclinometer::Allocator" base_class_type="canopen::GenericDeviceBase::Allocator">
-    <description>Allocator for CIA 401 inclinometer instances</description>
+    <description>Allocator for CIA 410 inclinometer instances</description>
   </class>
 </library>

@@ -15,7 +15,7 @@
 
   <buildtool_depend>catkin</buildtool_depend>
 
-  <depend>canopen_401</depend>
+  <depend>canopen_410</depend>
   <depend>canopen_chain_node</depend>
   <depend>canopen_master</depend>
   <!-- <depend>controller_manager</depend> -->
